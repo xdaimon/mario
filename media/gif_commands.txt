@@ -1,0 +1,5 @@
+# crop video
+ffmpeg -i MarioDemo.flv -filter:v "crop=768:512:256:512" MarioDemo.mp4
+
+# generate gif from video
+ffmpeg -i MarioDemo.mp4 -filter_complex "[0:v] fps=24,scale=320:-1,split [a][b];[a] palettegen [p];[b][p] paletteuse" MarioDemo.gif

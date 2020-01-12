@@ -1,0 +1,2 @@
+Bradley you've installed tensorflow through miniconda because it was easier.
+The default conda env (autoloaded by .bashrc) has tensorflow ($ which python3 gives /opt/miniconda3/bin/python3).
