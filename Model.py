@@ -1,11 +1,12 @@
 import numpy as np
 import math as m
-import os
+import os, random
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import tensorflow as tf
 from gym_super_mario_bros.actions import COMPLEX_MOVEMENT as POSSIBLE_ACTIONS
 from Optimizers import Adam
 
+# NES
 H_size = 150
 F_size = 3
 NF1_out = 4
@@ -16,6 +17,9 @@ NF5_out = 32
 NF6_out = 64
 z_size = 726
 Y_size = len(POSSIBLE_ACTIONS)
+
+# GA
+PASS_THROUGH = 10
 
 def var(x):
     return tf.Variable(x, trainable=False)
@@ -36,10 +40,10 @@ class Param:
             self.population.append(jitter + self.mean)
             self.population.append(self.mean - jitter)
 
-        self.set_current(0)
+        self.set_current_population_member(0)
 
     # change reference to current tensor
-    def set_current(self, i):
+    def set_current_population_member(self, i):
         self.current = self.population[i]
 
     def get_grad(self, reward):
@@ -144,11 +148,11 @@ class Parameters:
     def current(self):
         return [param.current for param in self.all()]
 
-    def set_current(self, i):
+    def set_current_population_member(self, i):
         for param in self.all():
-            param.set_current(i)
+            param.set_current_population_member(i)
 
-    def update(self, reward, reward_mean, reward_std):
+    def update_nes(self, reward, reward_mean, reward_std):
         reward = (reward-reward_mean)/(reward_std+.00001)
         grads = []
         means = []
@@ -158,6 +162,32 @@ class Parameters:
         self.optimizer.update(means, grads)
         for param in self.all():
             param.gen_pop_about_mean(self.sigma)
+
+    def mutate(self, param, i):
+        x = param.population[i]
+        if random.randint(1,4) == 1:
+            jitter = tf.random.normal(x.shape, stddev=self.sigma)
+            return x + jitter
+        else:
+            return x
+
+    def mate(self, param, i, j):
+        if random.randint(1,4) == 1:
+            return self.mutate(param, i)
+        else:
+            return self.mutate(param, j)
+
+    def update_ga(self, rewards):
+        # sort parameters by rewards
+        top_reward_indices = rewards.argsort()[-PASS_THROUGH:]
+        top_reward_indices = top_reward_indices[::-1]
+        for param in self.all():
+            # sort population
+            for i,j in enumerate(top_reward_indices):
+                param.population[i] = param.population[j]
+            # generate new population
+            for k in range(PASS_THROUGH,self.population_size):
+                param.population[k] = self.mate(param, random.randint(0,9), random.randint(0,9))
 
 # For visualization
 import viridis
@@ -239,29 +269,51 @@ def forward(observation,\
     print('x:',x.shape)
     S,_,_ = x.shape
 
+    activations = [None]*31
+
     x,S = conv([x],F1,S)
     x,S = conv(x,F2,S)
-    x,S = conv(x,F3,S)
     if visualize:
-        a1 = x[0,:,:,0][:,:,None]
-        a2 = x[0,:,:,1][:,:,None]
-        a3 = x[0,:,:,2][:,:,None]
-        a4 = x[0,:,:,3][:,:,None]
-        a5 = x[0,:,:,4][:,:,None]
-        a6 = x[0,:,:,5][:,:,None]
-        a7 = x[0,:,:,6][:,:,None]
-        a8 = x[0,:,:,7][:,:,None]
-        a9 = x[0,:,:,8][:,:,None]
-        a10 = x[0,:,:,9][:,:,None]
-        a11 = x[0,:,:,10][:,:,None]
-        a12 = x[0,:,:,11][:,:,None]
+        activations[0] = x[0,:,:,0][:,:,None]
+        activations[1] = x[0,:,:,3][:,:,None]
+        activations[2] = x[0,:,:,4][:,:,None]
+        activations[3] = x[0,:,:,5][:,:,None]
+    x,S = conv(x,F3,S)
     x = gnorm(x,g3,b3,G=4)
+    if visualize:
+        activations[4] = x[0,:,:,0][:,:,None]
+        activations[5] = x[0,:,:,1][:,:,None]
+        activations[6] = x[0,:,:,2][:,:,None]
+        activations[7] = x[0,:,:,3][:,:,None]
+        activations[8] = x[0,:,:,4][:,:,None]
+        activations[9] = x[0,:,:,5][:,:,None]
+        activations[10] = x[0,:,:,6][:,:,None]
+        activations[11] = x[0,:,:,7][:,:,None]
+        activations[12] = x[0,:,:,8][:,:,None]
+        activations[13] = x[0,:,:,9][:,:,None]
+        activations[14] = x[0,:,:,10][:,:,None]
+        activations[15] = x[0,:,:,11][:,:,None]
     x,S = conv(x,F4,S)
     x = gnorm(x,g4,b4,G=4)
+    if visualize:
+        activations[16] = x[0,:,:,0][:,:,None]
+        activations[17] = x[0,:,:,1][:,:,None]
+        activations[18] = x[0,:,:,2][:,:,None]
+        activations[19] = x[0,:,:,3][:,:,None]
+        activations[20] = x[0,:,:,4][:,:,None]
+        activations[21] = x[0,:,:,5][:,:,None]
+        activations[22] = x[0,:,:,6][:,:,None]
+        activations[23] = x[0,:,:,7][:,:,None]
+        activations[24] = x[0,:,:,8][:,:,None]
+        activations[25] = x[0,:,:,9][:,:,None]
+        activations[26] = x[0,:,:,10][:,:,None]
     x,S = conv(x,F5,S)
     x = gnorm(x,g5,b5,G=8)
     x = tf.nn.conv2d(x, F6, strides=[1,1,1,1], padding='VALID')
     x = gnorm(x,g6,b6,G=16)
+    if visualize:
+        activations[27] = x[0,:,:,0][:,:,None]
+        activations[28] = x[0,:,:,1][:,:,None]
     print('x:',x.shape)
     x = tf.nn.relu(x)
 
@@ -273,24 +325,22 @@ def forward(observation,\
     h2,c2 = lstm(h1,h2,c2,Wx2,bx2,lg2,lb2)
     a = tf.matmul(Wv, h2) + bv
 
-    if visualize:
-        a13 = a[:,:,None]
-
     a = tf.argmax(a)
 
     if visualize:
-        a14 = tf.reshape(tf.concat((h0,h1,h2),axis=0)[:289], (17,17))[:,:,None]
-        a15 = tf.reshape(tf.concat((c0,c1,c2),axis=0)[:289], (17,17))[:,:,None]
+        activations[29] = tf.reshape(tf.concat((h0,h1,h2),axis=0)[:289], (17,17))[:,:,None]
+        activations[30] = tf.reshape(tf.concat((c0,c1,c2),axis=0)[:289], (17,17))[:,:,None]
+        activations = post_process_activations(activations)
         observation = tf.image.resize(observation, (256,256), method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-        a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15 = post_process_activations([a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15])
-        return h0,c0,h1,c1,h2,c2,a,(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,observation),
+        return h0,c0,h1,c1,h2,c2,a,activations+[observation],
     else:
         return h0,c0,h1,c1,h2,c2,a
 
 class Model:
     def __init__(self, population_size, observation, params, visualize=False):
         # TODO what is 6 here? (2 vectors for each lstm layer (have 3 lstm layers))
-        self.rnn_states = [[tf.zeros((H_size,1))]*6 for _ in range(population_size)]
+        self.population_size = population_size
+        self.rnn_states = [[tf.zeros((H_size,1)) for _ in range(6)] for _ in range(population_size)]
         self.params = params
 
         # forward once just to compile the graph
@@ -300,7 +350,7 @@ class Model:
         self.visualize = visualize
 
     def __call__(self, observation, env_id):
-        self.params.set_current(env_id)
+        self.params.set_current_population_member(env_id)
         if self.visualize:
             *self.rnn_states[env_id], action, activations = forward(observation, *self.rnn_states[env_id], *self.params.current(), visualize=True)
             return action.numpy()[0], activations
@@ -309,10 +359,7 @@ class Model:
             return action.numpy()[0]
 
     def reset_rnn_states(self):
-        for i in range(len(self.rnn_states)):
-            for j in range(len(self.rnn_states[i])):
-                self.rnn_states[i][j] *= 0
-
+        self.rnn_states = [[tf.zeros((H_size,1)) for _ in range(6)] for _ in range(self.population_size)]
 
 
 

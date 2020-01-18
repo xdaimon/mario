@@ -6,21 +6,27 @@ class Worker(object):
     def __init__(self, envs_per_worker, worker_id):
         from nes_py.wrappers import JoypadSpace
         import gym_super_mario_bros
-        from gym_super_mario_bros.actions import COMPLEX_MOVEMENT
+        from gym_super_mario_bros.actions import COMPLEX_MOVEMENT as POSSIBLE_MOVES
+
+        # TODO gym_super_mario_bros is making numpy complain.
+        # has to do with mario x position on screen. use this to suppress
+        np.seterr(over='ignore')
+
         self.worker_id = worker_id
         self.envs = []
         self.steps = 0
         self.envs_per_worker = envs_per_worker
 
         for j in range(envs_per_worker):
-            self.envs.append(JoypadSpace(gym_super_mario_bros.make('SuperMarioBros-v0'), COMPLEX_MOVEMENT))
+            self.envs.append(JoypadSpace(gym_super_mario_bros.make('SuperMarioBros-v0'), POSSIBLE_MOVES))
             # or use random stage selection
-            # self.envs.append(JoypadSpace(gym_super_mario_bros.make('SuperMarioBrosRandomStages-v0'), COMPLEX_MOVEMENT))
+            # self.envs.append(JoypadSpace(gym_super_mario_bros.make('SuperMarioBrosRandomStages-v0'), POSSIBLE_MOVES))
             # self.envs[-1].seed(123)
 
     def step(self, envs_to_step, max_steps):
         self.steps += 1
         results = []
+        all_done = True
         for env_id,action in envs_to_step:
             env = self.envs[env_id % self.envs_per_worker]
             observation, reward, done, info = env.step(action)
@@ -28,8 +34,9 @@ class Worker(object):
             if done or die or self.steps > max_steps:
                 done = True
                 observation = env.reset()
+            all_done &= done
             results.append((self.worker_id, env_id, observation.astype(np.float32), reward, done, info, action))
-        if self.steps > max_steps:
+        if all_done:
             self.steps = 0
         return results
 
@@ -60,6 +67,7 @@ class Workers:
         self.active_envs[worker_id].remove(env_id)
 
     def set_envs_active(self):
+        self.steps = 0
         for worker_id in range(self.number_workers):
             self.active_envs[worker_id] = {worker_id*self.envs_per_worker+j for j in range(self.envs_per_worker)}
 

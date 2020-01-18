@@ -1,7 +1,7 @@
 import pygame
 import pandas as pd
 import numpy as np
-import os, pickle, sys
+import os, pickle, sys, time
 from nes_py.wrappers import JoypadSpace
 import gym_super_mario_bros
 from gym_super_mario_bros.actions import COMPLEX_MOVEMENT as POSSIBLE_MOVES
@@ -19,7 +19,7 @@ env = JoypadSpace(gym_super_mario_bros.make('SuperMarioBros-v0'), POSSIBLE_MOVES
 observation = env.reset().astype(np.float32)
 
 pygame.init()
-display = pygame.display.set_mode((1024,1024))
+display = pygame.display.set_mode((2*1024,1024))
 
 # for screen recording with OBS studio
 # from time import sleep
@@ -35,6 +35,8 @@ model = Model(1, observation, params, visualize=True)
 env_id = 0
 
 while env_steps < trainingInfo.max_num_steps and running:
+    # time.sleep(.016)
+
     action, activations = model(observation, env_id)
     observation, reward, done, info = env.step(action)
     observation = observation.astype(np.float32)
@@ -53,7 +55,9 @@ while env_steps < trainingInfo.max_num_steps and running:
         activations = [a.numpy() for a in activations]
         for i,activation in enumerate(activations):
             activation = np.swapaxes(activation,0,1).astype('uint8')
-            display.blit(pygame.surfarray.make_surface(activation), (256*(i%4),256*(i//4)))
+            display.blit(pygame.surfarray.make_surface(activation), (256*(i%8),256*(i//8)))
     pygame.display.update()
     env_steps += 1
+
 pygame.quit()
+print()

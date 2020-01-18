@@ -28,15 +28,16 @@ returns = grouped['reward'].sum()
 # Plot returns
 plot_rows = []
 for name,group in returns.groupby('episode'):
-    plot_rows.append(np.sort(group.tolist()))
+    plot_rows.append(sorted(group.tolist()))
 ax = plt.subplot(1,1,1)
-ax.matshow(plot_rows)
+ax.matshow(np.array(plot_rows))
 ax.set_xlabel('Function Samples (Sorted)')
 ax.set_ylabel('Param Updates')
 ax.set_yticklabels([])
 ax.set_xticklabels([])
 #plot mean, min, max, std for returns
-stats = returns.groupby('episode').describe().rolling(window=10).mean().dropna()
+#stats = returns.groupby('episode').describe().rolling(window=10).mean().dropna()
+stats = returns.groupby('episode').describe().dropna()
 del stats['count']
 stats.plot()
 plt.show()
