@@ -12,4 +12,9 @@ Some Observations :
 * I think the agents are relying more on information from lstm layers and less on information from the convolutional layers.
 
 Next steps :
-* Visualize the activations of a recurrent convolution layer.
+* Rewrite in pytorch
+* Rewrite the convolutional layers using strided convolutions, leaky relus and bn.
+* Maybe use a resnet inspired model for the feature extraction?
+* Try to do unsupervised feature learning from images. The only way i know howw to do this currently is using an autoencoder.
+* Is there a way to deploy this to the almighty web? maybe just a data exploration or simulation playback?
+
