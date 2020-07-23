@@ -1,7 +1,7 @@
 ![](media/MarioDemo.gif)
 
 
-This code implements an agent that plays Super Mario Bros. The agent learns by reinforcement learning and Natural Evolution Strategy (NES) (https://openai.com/blog/evolution-strategies/) . It is an interesting fact that NES can be seen as a sort of approximation of the gradient using finite differences.
+This code implements an agent that plays Super Mario Bros. The agent learns by reinforcement learning and Natural Evolution Strategy (NES) (https://openai.com/blog/evolution-strategies/) . It is an interesting fact that NES can be seen as a sort of approximation, using finite differences, of the gradient of the mean variable of the search distribution.
 
 One nice feature is that the model's activations can be visualized. During training weights are stored on disk whenever a new top performing agent is discovered. The [visualize.py](visualize.py) script will use weights from disk to run an agent in the environment and show the activations of the model.
 
